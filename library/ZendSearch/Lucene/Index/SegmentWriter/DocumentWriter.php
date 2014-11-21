@@ -119,19 +119,23 @@ class DocumentWriter extends AbstractSegmentWriter
                     $field = clone($field);
                     $field->isIndexed = $field->isTokenized = false;
                 } else {
-                    $term = new Index\Term($fieldUtf8Value, $field->name);
-                    $termKey = $term->key();
-
-                    if (!isset($this->_termDictionary[$termKey])) {
-                        // New term
-                        $this->_termDictionary[$termKey] = $term;
-                        $this->_termDocs[$termKey] = array();
-                        $this->_termDocs[$termKey][$this->_docCount] = array();
-                    } elseif (!isset($this->_termDocs[$termKey][$this->_docCount])) {
-                        // Existing term, but new term entry
-                        $this->_termDocs[$termKey][$this->_docCount] = array();
+                    
+                    $valuesArray = is_array($fieldUtf8Value) ? $fieldUtf8Value : array($fieldUtf8Value);
+                    foreach ($valuesArray as $val) { 
+                        $term = new Index\Term($val, $field->name);
+                        $termKey = $term->key();
+    
+                        if (!isset($this->_termDictionary[$termKey])) {
+                            // New term
+                            $this->_termDictionary[$termKey] = $term;
+                            $this->_termDocs[$termKey] = array();
+                            $this->_termDocs[$termKey][$this->_docCount] = array();
+                        } elseif (!isset($this->_termDocs[$termKey][$this->_docCount])) {
+                            // Existing term, but new term entry
+                            $this->_termDocs[$termKey][$this->_docCount] = array();
+                        }
+                        $this->_termDocs[$termKey][$this->_docCount][] = 0; // no position
                     }
-                    $this->_termDocs[$termKey][$this->_docCount][] = 0; // position
 
                     $docNorms[$field->name] = chr($similarity->encodeNorm( $similarity->lengthNorm($field->name, 1)*
                                                                            $document->boost*
@@ -142,7 +146,7 @@ class DocumentWriter extends AbstractSegmentWriter
             if ($field->isStored) {
                 $storedFields[] = $field;
             }
-
+            
             $this->addField($field);
         }
 
